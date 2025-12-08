@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon TicTacToe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #050505;
+            --glass-bg: rgba(20, 20, 30, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary: #00f2ff; /* Cyan */
+            --secondary: #ff0055; /* Magenta */
+            --text-main: #ffffff;
+            --text-muted: #8b9bb4;
+            --grid-gap: 12px;
+            --cell-size: 100px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 85, 0.15) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        /* Ambient Background Grid */
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+        }
+
+        /* Main Container - The Glass Card */
+        .game-container {
+            width: 100%;
+            max-width: 520px; /* Bigger card */
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top Glow Bar */
+        .game-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff 0%, #b0b0b0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 300;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #status {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #555;
+            box-shadow: 0 0 5px #555;
+        }
+
+        /* Dynamic Status Colors */
+        .status-dot.active { background-color: var(--primary); box-shadow: 0 0 8px var(--primary); }
+        .status-dot.waiting { background-color: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
+        .status-dot.error { background-color: var(--secondary); box-shadow: 0 0 8px var(--secondary); }
+
+        #player-info {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Inputs Area */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.1);
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        #join-btn {
+            grid-column: span 2;
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.8), rgba(0, 242, 255, 0.4));
+            border: 1px solid var(--primary);
+            color: #fff;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #join-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 242, 255, 0.2);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+        }
+
+        #join-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Game Board */
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--grid-gap);
+            margin: 10px auto;
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1; /* Makes it perfectly square */
+            padding: 10px;
+            border-radius: 16px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        /* Glow effect when it's YOUR turn */
+        #board.my-turn-active {
+            box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.1), 0 0 20px rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
+
+        .cell {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem; /* Big Icons */
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .cell:hover:empty {
+            background: rgba(255, 255, 255, 0.07);
+            transform: scale(0.98);
+        }
+
+        /* Styling the X and O */
+        .cell.x {
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary), 0 0 30px var(--primary);
+        }
+
+        .cell.o {
+            color: var(--secondary);
+            text-shadow: 0 0 15px var(--secondary), 0 0 30px var(--secondary);
+        }
+
+        /* Footer Info */
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Errors */
+        #error {
+            color: var(--secondary);
+            text-align: center;
+            font-size: 0.9rem;
+            min-height: 20px;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 500px) {
+            .game-container { padding: 20px; }
+            h1 { font-size: 1.8rem; }
+            .controls { grid-template-columns: 1fr; }
+            #join-btn { grid-column: span 1; }
+            .cell { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <div class="header">
+            <h1>Neon Tac Toe</h1>
+            <p class="subtitle">Multiplayer Cyberpunk Battle</p>
+        </div>
+
+        <div class="controls">
+            <div class="input-group">
+                <input type="text" id="room-input" placeholder="Room Code (e.g., NEO-1)">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password-input" placeholder="Password (Optional)">
+            </div>
+            <button id="join-btn">Initialize Connection ⚡</button>
+        </div>
+
+        <div id="error"></div>
+
+        <div class="status-bar">
+            <div id="status">
+                <span class="status-dot"></span>
+                <span>Enter Room Code</span>
+            </div>
+            <div id="player-info">Spectator</div>
+        </div>
+
+        <div id="board"></div>
+
+        <div class="meta-info">
+            <span id="players-count">Players: 0/2</span>
+            <span>Socket.IO v4</span>
+        </div>
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script>
+        const socket = io();
+
+        // Elements
+        const boardEl = document.getElementById("board");
+        const statusEl = document.getElementById("status");
+        const statusTextEl = statusEl.querySelector("span:last-child");
+        const statusDotEl = statusEl.querySelector(".status-dot");
+        const errorEl = document.getElementById("error");
+        const playerInfoEl = document.getElementById("player-info");
+        const playersCountEl = document.getElementById("players-count");
+        const roomInput = document.getElementById("room-input");
+        const passwordInput = document.getElementById("password-input");
+        const joinBtn = document.getElementById("join-btn");
+
+        // Game State
+        let roomId = null;
+        let mySymbol = null;
+        let currentTurn = "X";
+        let isMyTurn = false;
+        let isGameActive = false;
+
+        // --- Initialization ---
+
+        // Create Grid Cells
+        const cells = [];
+        for (let i = 0; i < 9; i++) {
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            cell.dataset.index = i;
+            cell.addEventListener("click", () => handleCellClick(i));
+            boardEl.appendChild(cell);
+            cells.push(cell);
+        }
+
+        // --- Logic ---
+
+        function handleCellClick(index) {
+            // Strict Validation
+            if (!isGameActive) return;
+            if (!mySymbol) return; // Spectators can't play
+            if (!isMyTurn) {
+                showError("Wait for your turn!");
+                return;
+            }
+            if (cells[index].textContent !== "") return; // Cell occupied
+
+            // Optimistic UI update (optional, but sticking to server authority for safety)
+            socket.emit("makeMove", { roomId, index, symbol: mySymbol });
+        }
+
+        function updateStatusUI() {
+            if (!roomId) {
+                statusTextEl.textContent = "Enter Room Code";
+                statusDotEl.className = "status-dot";
+                return;
+            }
+
+            if (!isGameActive && !mySymbol) {
+                statusTextEl.textContent = "Waiting for game...";
+                statusDotEl.className = "status-dot waiting";
+                return;
+            }
+
+            if (!mySymbol) {
+                // Spectator View
+                statusTextEl.textContent = `Spectating | Turn: ${currentTurn}`;
+                statusDotEl.className = "status-dot waiting";
+                boardEl.classList.remove("my-turn-active");
+                return;
+            }
+
+            // Player View
+            isMyTurn = (currentTurn === mySymbol);
+            
+            if (isMyTurn) {
+                statusTextEl.textContent = `YOUR TURN (${mySymbol})`;
+                statusDotEl.className = "status-dot active";
+                boardEl.classList.add("my-turn-active"); // Add glow to board
+                document.title = "Your Turn! - Neon Tac Toe";
+            } else {
+                statusTextEl.textContent = `Opponent's Turn (${currentTurn})`;
+                statusDotEl.className = "status-dot waiting";
+                boardEl.classList.remove("my-turn-active");
+                document.title = "Waiting... - Neon Tac Toe";
+            }
+        }
+
+        function showError(msg) {
+            errorEl.textContent = msg;
+            errorEl.style.opacity = "1";
+            setTimeout(() => { errorEl.style.opacity = "0"; errorEl.textContent = ""; }, 3000);
+        }
+
+        // --- Socket Events ---
+
+        joinBtn.addEventListener("click", () => {
+            const r = roomInput.value.trim();
+            const p = passwordInput.value.trim();
+
+            if (!r || r.length < 3) {
+                showError("Room code must be 3+ chars");
+                return;
+            }
+
+            roomId = r;
+            // Disable inputs while connecting
+            joinBtn.disabled = true;
+            joinBtn.textContent = "Connecting...";
+            
+            socket.emit("joinRoom", { roomId: r, password: p });
+        });
+
+        socket.on("roomJoined", () => {
+            roomInput.disabled = true;
+            passwordInput.disabled = true;
+            joinBtn.textContent = "Connected";
+            joinBtn.style.background = "linear-gradient(135deg, #00b09b, #96c93d)"; // Success Green gradient
+            joinBtn.style.borderColor = "#96c93d";
+        });
+
+        socket.on("roomError", (msg) => {
+            roomId = null;
+            joinBtn.disabled = false;
+            joinBtn.textContent = "Initialize Connection ⚡";
+            showError(msg);
+        });
+
+        socket.on("init", (data) => {
+            // Reset state
+            mySymbol = data.symbol;
+            currentTurn = data.turn;
+            isGameActive = true;
+            
+            // Render Board
+            data.board.forEach((val, i) => {
+                cells[i].textContent = val || "";
+                cells[i].className = "cell"; // reset classes
+                if (val === "X") cells[i].classList.add("x");
+                if (val === "O") cells[i].classList.add("o");
+            });
+
+            // Update Info
+            playerInfoEl.textContent = mySymbol ? `You are Player ${mySymbol}` : "Spectator Mode";
+            if(mySymbol === 'X') playerInfoEl.style.color = "var(--primary)";
+            if(mySymbol === 'O') playerInfoEl.style.color = "var(--secondary)";
+
+            updateStatusUI();
+        });
+
+        socket.on("playersCount", (count) => {
+            playersCountEl.textContent = `Players: ${count}/2`;
+        });
+
+        socket.on("moveMade", ({ index, symbol, turn, winner, isDraw }) => {
+            // Update the specific cell
+            cells[index].textContent = symbol;
+            cells[index].classList.add(symbol.toLowerCase());
+            
+            currentTurn = turn;
+
+            if (winner) {
+                isGameActive = false;
+                statusTextEl.textContent = winner === mySymbol ? "VICTORY ACHIEVED 🏆" : "DEFEAT DETECTED 💀";
+                statusDotEl.className = winner === mySymbol ? "status-dot active" : "status-dot error";
+                boardEl.classList.remove("my-turn-active");
+                if(winner === mySymbol) triggerWinEffect();
+            } else if (isDraw) {
+                isGameActive = false;
+                statusTextEl.textContent = "SYSTEM DRAW 🤝";
+                statusDotEl.className = "status-dot waiting";
+                boardEl.classList.remove("my-turn-active");
+            } else {
+                updateStatusUI();
+            }
+        });
+
+        socket.on("resetBoard", () => {
+            cells.forEach(c => {
+                c.textContent = "";
+                c.className = "cell";
+            });
+            isGameActive = true;
+            currentTurn = "X";
+            updateStatusUI();
+        });
+
+        // Simple visual win effect (Flash the board)
+        function triggerWinEffect() {
+            boardEl.style.boxShadow = "0 0 50px var(--primary)";
+            setTimeout(() => {
+                boardEl.style.boxShadow = "none";
+            }, 500);
+        }
+
+    </script>
+</body>
+</html>

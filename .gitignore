@@ -1,0 +1,9 @@
+# Dependency directories
+node_modules/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Environment variables (if you use them later)
+.env
