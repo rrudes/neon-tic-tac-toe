@@ -168,11 +168,95 @@
         #error { color: var(--secondary); text-align: center; font-size: 0.9rem; min-height: 20px; font-weight: 600; }
         .meta-info { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
 
+        /* --- Chat UI styling (Cyberpunk Terminal) --- */
+        .chat-container {
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 260px;
+        }
+        /* Emoji bar */
+        .emoji-bar {
+            display:flex;
+            gap:8px;
+            align-items:center;
+            padding-bottom:4px;
+        }
+        .emoji-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.04);
+            color: var(--text-main);
+            padding:6px 8px;
+            border-radius:10px;
+            font-size:1.2rem;
+            cursor:pointer;
+            transition: box-shadow 0.18s ease, transform 0.12s ease;
+        }
+        .emoji-btn:hover {
+            box-shadow: 0 6px 18px rgba(0,242,255,0.08), 0 0 12px rgba(0,242,255,0.06);
+            transform: translateY(-3px);
+        }
+
+        /* Floating reaction */
+        .reaction {
+            position: absolute;
+            bottom: 20px;
+            pointer-events: none;
+            font-size: 28px;
+            will-change: transform, opacity;
+            text-shadow: 0 0 14px rgba(0,242,255,0.12);
+            animation: float-up-fade 2600ms cubic-bezier(.2,.9,.2,1) forwards;
+        }
+        @keyframes float-up-fade {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            60% { transform: translateY(-120px) scale(1.15); opacity: 0.9; }
+            100% { transform: translateY(-220px) scale(1.25); opacity: 0; }
+        }
+
+        #error { color: var(--secondary); text-align: center; font-size: 0.9rem; min-height: 20px; font-weight: 600; }
+        .meta-info { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+
+        /* --- Chat UI styling (Cyberpunk Terminal) --- */
+        .chat-container {
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 260px;
+        }
+        .chat-history {
+            background: rgba(0,0,0,0.12);
+            border-radius: 8px;
+            padding: 8px;
+            overflow-y: auto;
+            display:flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 160px;
+        }
+        .chat-meta { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; }
+        .chat-msg { padding: 8px 12px; border-radius: 12px; max-width: 78%; word-break: break-word; font-size: 0.95rem; }
+        .chat-msg.me { align-self: flex-end; background: linear-gradient(135deg, var(--primary), rgba(0,180,255,0.6)); color: #001; box-shadow: 0 6px 18px rgba(0,242,255,0.06); }
+        .chat-msg.other { align-self: flex-start; background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid rgba(255,255,255,0.03); }
+        .chat-msg.system { align-self: center; background: transparent; color: var(--text-muted); font-style: italic; max-width: 100%; }
+        .chat-input { display:flex; gap:8px; }
+        .chat-input input { flex:1; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background: rgba(0,0,0,0.35); color: var(--text-main); }
+        .chat-input button { padding: 10px 12px; border-radius:10px; border:none; background: linear-gradient(135deg, var(--primary), rgba(0,180,255,0.6)); color:#001; font-weight:700; cursor:pointer; }
+        .chat-sender { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+
         @media (max-width: 500px) {
             .game-container { padding: 20px; }
             .controls { grid-template-columns: 1fr; }
             #join-btn, #copy-btn { grid-column: span 1; }
             .cell { font-size: 3rem; }
+            .chat-history { max-height: 130px; }
         }
     </style>
 </head>
@@ -193,6 +277,10 @@
             <div class="input-group">
                 <input type="password" id="password-input" placeholder="Password (optional)" maxlength="30" autocomplete="current-password" aria-label="Room password">
             </div>
+            <!-- New Player Name input -->
+            <div class="input-group" style="grid-column: span 2;">
+                <input type="text" id="name-input" placeholder="Enter Alias (e.g. Neo)" maxlength="30" autocomplete="nickname" aria-label="Player name">
+            </div>
             <button id="join-btn" class="btn">Join / Create Room</button>
         </div>
         
@@ -206,6 +294,23 @@
 
         <div id="board" role="grid" aria-label="Tic Tac Toe board"></div>
 
+        <!-- Chat: Cyberpunk Terminal -->
+        <div class="chat-container" id="chat-container" aria-live="polite">
+            <div class="emoji-bar" id="emoji-bar" aria-hidden="false">
+                <button class="emoji-btn">🔥</button>
+                <button class="emoji-btn">😂</button>
+                <button class="emoji-btn">😲</button>
+                <button class="emoji-btn">😎</button>
+                <button class="emoji-btn">💀</button>
+                <button class="emoji-btn">💩</button>
+            </div>
+             <div class="chat-history" id="chat-history" role="log" aria-atomic="false"></div>
+             <div class="chat-input">
+                 <input id="chat-input" type="text" placeholder="Trash talk or gg..." maxlength="250" aria-label="Chat input">
+                 <button id="chat-send">Send</button>
+             </div>
+         </div>
+
         <div class="meta-info">
             <div id="player-info">Not in a room</div>
             <div id="players-count">Players: 0/2</div>
@@ -216,6 +321,23 @@
     <script>
         const socket = io();
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Reactions helpers
+        const emojiBar = document.getElementById("emoji-bar");
+        const gameContainer = document.querySelector(".game-container");
+
+        function spawnFloatingEmoji(emoji) {
+            const el = document.createElement("div");
+            el.className = "reaction";
+            el.textContent = emoji;
+            // random horizontal position within game container
+            const rect = gameContainer.getBoundingClientRect();
+            const padding = 24;
+            const left = Math.max(padding, Math.random() * (rect.width - padding * 2));
+            el.style.left = `${left}px`;
+            gameContainer.appendChild(el);
+            // remove after animation completes
+            setTimeout(() => { try { el.remove(); } catch (e) {} }, 2800);
+        }
 
         // --- DOM Elements ---
         const boardEl = document.getElementById("board");
@@ -226,16 +348,23 @@
         const playersCountEl = document.getElementById("players-count");
         const roomInput = document.getElementById("room-input");
         const passwordInput = document.getElementById("password-input");
+        const nameInput = document.getElementById("name-input"); // new
         const joinBtn = document.getElementById("join-btn");
         const copyBtn = document.getElementById("copy-btn");
         const loginControls = document.getElementById("login-controls");
         const musicBtn = document.getElementById("music-btn");
+
+        // Chat elements
+        const chatHistoryEl = document.getElementById("chat-history");
+        const chatInput = document.getElementById("chat-input");
+        const chatSendBtn = document.getElementById("chat-send");
 
         let roomId = null;
         let mySymbol = null;
         let currentTurn = "X";
         let isMyTurn = false;
         let isGameActive = false;
+        let myName = null; // store local player name
 
         // focus input for convenience
         try { roomInput.focus(); } catch (e) {}
@@ -264,14 +393,17 @@
         joinBtn.addEventListener("click", () => {
             const r = (roomInput.value || "").trim();
             const p = (passwordInput.value || "").trim();
+            const n = (nameInput.value || "").trim() || "Anonymous";
             if (!r || r.length < 3) return showError("Enter a room code (min 3 chars).");
 
             roomId = r;
+            myName = n;
             joinBtn.disabled = true;
             joinBtn.textContent = "Connecting...";
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
-            socket.emit("joinRoom", { roomId: r, password: p });
+            // send playerName to server
+            socket.emit("joinRoom", { roomId: r, password: p, playerName: n });
         });
 
         copyBtn.addEventListener("click", () => {
@@ -298,6 +430,7 @@
             roomInput.value = roomId;
             roomInput.setAttribute("disabled", "true");
             passwordInput.setAttribute("disabled", "true");
+            nameInput.setAttribute("disabled", "true");
             statusTextEl.textContent = `Joined ${roomId}`;
             statusDotEl.className = "status-dot active";
         });
@@ -347,6 +480,72 @@
         socket.on("resetBoard", () => {
             cells.forEach(c => { c.textContent = ""; c.classList.remove("x","o","win-highlight"); });
             isGameActive = true;
+        });
+
+        // CHAT: Send message
+        function appendChat({ senderName, message, symbol }) {
+            const wrapper = document.createElement("div");
+            // system messages
+            if (senderName === "System") {
+                const el = document.createElement("div");
+                el.className = "chat-msg system";
+                el.textContent = message;
+                wrapper.appendChild(el);
+            } else {
+                const nameEl = document.createElement("div");
+                nameEl.className = "chat-sender";
+                nameEl.textContent = senderName + (symbol ? ` · ${symbol}` : "");
+                wrapper.appendChild(nameEl);
+
+                const msgEl = document.createElement("div");
+                const isMe = (myName && senderName === myName);
+                msgEl.className = "chat-msg " + (isMe ? "me" : "other");
+                msgEl.textContent = message;
+                wrapper.appendChild(msgEl);
+            }
+            chatHistoryEl.appendChild(wrapper);
+            // auto-scroll
+            chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+        }
+
+        chatSendBtn.addEventListener("click", () => {
+            const txt = (chatInput.value || "").trim();
+            if (!txt) return;
+            if (!roomId) return showError("Join a room first.");
+            // emit chat message (server will attach senderName + symbol)
+            socket.emit("chatMessage", { roomId, message: txt });
+            chatInput.value = "";
+        });
+
+        chatInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                chatSendBtn.click();
+            }
+        });
+
+        // receive chat messages (from peers or system)
+        socket.on("chatMessage", ({ senderName, message, symbol }) => {
+            appendChat({ senderName, message, symbol });
+        });
+
+        // maintain players count updates
+        socket.on("playersCount", (count) => {
+            playersCountEl.textContent = `Players: ${count}/2`;
+        });
+
+        // emoji click -> emit sendReaction
+        emojiBar?.addEventListener("click", (e) => {
+            const btn = e.target.closest?.(".emoji-btn");
+            if (!btn || !roomId) return;
+            const emoji = btn.textContent.trim();
+            if (!emoji) return;
+            socket.emit("sendReaction", { roomId, emoji });
+        });
+
+        // receive reaction from server and show floating emoji
+        socket.on("playerReaction", ({ emoji, senderId }) => {
+            spawnFloatingEmoji(emoji);
         });
     </script>
 </body>

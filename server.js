@@ -58,9 +58,11 @@ function scheduleRoomCleanup(roomId) {
 io.on("connection", socket => {
   console.log("User connected:", socket.id);
 
-  socket.on("joinRoom", ({ roomId, password }) => {
+  // joinRoom now accepts { roomId, password, playerName }
+  socket.on("joinRoom", ({ roomId, password, playerName }) => {
     // defensive: ensure roomId is a string before trimming
     roomId = String(roomId || "").trim().toLowerCase();
+    playerName = String(playerName || "Anonymous").trim().slice(0, 30);
     
     // simple validation
     if (!roomId || roomId.length < 3) {
@@ -73,6 +75,7 @@ io.on("connection", socket => {
         password: password || "",
         board: createEmptyBoard(),
         players: { X: null, O: null }, 
+        playerNames: {},            // socket.id -> playerName
         turn: "X",
         moves: 0
       };
@@ -93,6 +96,9 @@ io.on("connection", socket => {
         if (room.players.X === null) { room.players.X = socket.id; symbol = "X"; }
         else if (room.players.O === null) { room.players.O = socket.id; symbol = "O"; }
     }
+
+    // Store player name for this socket in room
+    room.playerNames[socket.id] = playerName;
     
     socket.join(roomId);
 
@@ -108,6 +114,50 @@ io.on("connection", socket => {
     socket.emit("roomJoined", roomId); // Send roomId back for confirmation
     io.to(roomId).emit("playersCount", activePlayers);
 
+    // System announcement that a named player has joined
+    io.to(roomId).emit("chatMessage", {
+      senderName: "System",
+      message: `${playerName} has entered the grid`,
+      symbol: null
+    });
+
+    scheduleRoomCleanup(roomId);
+  });
+
+  // listen for chat messages from clients
+  socket.on("chatMessage", ({ roomId, message }) => {
+    const room = rooms[roomId];
+    if (!room) {
+      socket.emit("roomError", "Room not found. Cannot send message.");
+      return;
+    }
+    const msg = String(message || "").trim();
+    if (!msg) return;
+
+    const senderName = room.playerNames?.[socket.id] || "Anonymous";
+    const symbol = room.players.X === socket.id ? "X" : room.players.O === socket.id ? "O" : null;
+
+    // Broadcast to the room
+    io.to(roomId).emit("chatMessage", {
+      senderName,
+      message: msg,
+      symbol
+    });
+
+    scheduleRoomCleanup(roomId);
+  });
+
+  // NEW: listen for emoji reactions from clients and broadcast to room
+  socket.on("sendReaction", ({ roomId, emoji }) => {
+    const room = rooms[roomId];
+    if (!room) {
+      socket.emit("roomError", "Room not found. Cannot send reaction.");
+      return;
+    }
+    const em = String(emoji || "").trim().slice(0, 4); // limit length
+    if (!em) return;
+    // Broadcast reaction to everyone in the room (including sender)
+    io.to(roomId).emit("playerReaction", { emoji: em, senderId: socket.id });
     scheduleRoomCleanup(roomId);
   });
 
@@ -171,8 +221,23 @@ io.on("connection", socket => {
       if (!rooms[rid]) continue;
       const room = rooms[rid];
       let wasPlayer = false;
+      // capture leaving player's name
+      const leavingName = room.playerNames?.[socket.id] || "A player";
+
       if (room.players.X === socket.id) { room.players.X = null; wasPlayer = true; }
       if (room.players.O === socket.id) { room.players.O = null; wasPlayer = true; }
+
+      // Remove stored name mapping
+      if (room.playerNames && room.playerNames[socket.id]) {
+        delete room.playerNames[socket.id];
+      }
+
+      // system announcement
+      io.to(rid).emit("chatMessage", {
+        senderName: "System",
+        message: `${leavingName} has left the grid`,
+        symbol: null
+      });
 
       const activePlayers = getActivePlayersCount(room);
       // always emit updated count to room (spectators + players)
