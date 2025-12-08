@@ -7,26 +7,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <style>
         :root {
             --bg-color: #050505;
-            --glass-bg: rgba(20, 20, 30, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --primary: #00f2ff; /* Cyan */
-            --secondary: #ff0055; /* Magenta */
+            --glass-bg: rgba(20, 20, 30, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #00f2ff;
+            --secondary: #ff0055;
             --text-main: #ffffff;
             --text-muted: #8b9bb4;
             --grid-gap: 12px;
-            --cell-size: 100px;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Outfit', sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
 
         body {
             background-color: var(--bg-color);
@@ -42,52 +37,45 @@
             padding: 20px;
         }
 
-        /* Ambient Background Grid */
-        body::before {
+        /* --- THE FIX IS HERE --- */
+        /* Scanline effect */
+        body::after {
             content: "";
-            position: absolute;
+            position: fixed;
             inset: 0;
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            z-index: -1;
-            mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none; /* critical: allow clicks to pass through */
+            z-index: -1; /* keep it behind page content */
         }
 
-        /* Main Container - The Glass Card */
         .game-container {
             width: 100%;
-            max-width: 520px; /* Bigger card */
+            max-width: 520px;
             background: var(--glass-bg);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--glass-border);
             border-radius: 24px;
             padding: 32px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 20px;
+
             position: relative;
-            overflow: hidden;
+            z-index: 1; /* ensure inputs live above pseudo elements */
         }
 
-        /* Top Glow Bar */
-        .game-container::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            box-shadow: 0 0 15px var(--primary);
+        /* make inputs reliably clickable above visual layers */
+        .controls input, .controls .input-group {
+            position: relative;
+            z-index: 2;
         }
 
-        /* Header */
-        .header {
-            text-align: center;
+        /* Music button shouldn't cover inputs on small screens */
+        @media (max-width: 500px) {
+            .music-toggle { bottom: 16px; right: 16px; top: auto; }
         }
 
         h1 {
@@ -95,19 +83,15 @@
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             background: linear-gradient(135deg, #fff 0%, #b0b0b0 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255,255,255,0.1);
         }
 
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            font-weight: 300;
-        }
+        .subtitle { color: var(--text-muted); font-size: 0.9rem; font-weight: 400; letter-spacing: 0.5px; }
 
-        /* Status Bar */
         .status-bar {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
@@ -118,168 +102,76 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        #status {
-            font-weight: 600;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        #status { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #555; transition: 0.3s; }
+        .status-dot.active { background-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
+        .status-dot.waiting { background-color: #ffcc00; box-shadow: 0 0 10px #ffcc00; }
+        .status-dot.error { background-color: var(--secondary); box-shadow: 0 0 10px var(--secondary); }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #555;
-            box-shadow: 0 0 5px #555;
-        }
-
-        /* Dynamic Status Colors */
-        .status-dot.active { background-color: var(--primary); box-shadow: 0 0 8px var(--primary); }
-        .status-dot.waiting { background-color: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
-        .status-dot.error { background-color: var(--secondary); box-shadow: 0 0 8px var(--secondary); }
-
-        #player-info {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        /* Inputs Area */
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .input-group {
-            position: relative;
-        }
-
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
         input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--glass-border);
-            color: #fff;
-            padding: 14px 16px;
-            border-radius: 12px;
-            font-size: 1rem;
-            outline: none;
-            transition: 0.3s ease;
+            width: 100%; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border);
+            color: #fff; padding: 14px 16px; border-radius: 12px; font-size: 1rem; outline: none; transition: 0.3s;
         }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.1); }
 
-        input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.1);
-        }
-
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+        .btn {
+            border: none; padding: 14px; border-radius: 12px; font-size: 0.95rem; font-weight: 700;
+            text-transform: uppercase; cursor: pointer; transition: 0.3s ease; color: #fff;
         }
 
         #join-btn {
             grid-column: span 2;
-            background: linear-gradient(135deg, rgba(0, 242, 255, 0.8), rgba(0, 242, 255, 0.4));
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.8), rgba(0, 180, 255, 0.6));
             border: 1px solid var(--primary);
-            color: #fff;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
         }
+        #join-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 242, 255, 0.4); }
 
-        #join-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 242, 255, 0.2);
-            text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+        #copy-btn {
+            grid-column: span 2; display: none; /* Hidden until joined */
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
         }
+        #copy-btn:hover { background: rgba(255, 255, 255, 0.15); }
 
-        #join-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Game Board */
         #board {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: var(--grid-gap);
-            margin: 10px auto;
-            position: relative;
-            width: 100%;
-            aspect-ratio: 1; /* Makes it perfectly square */
-            padding: 10px;
-            border-radius: 16px;
-            transition: box-shadow 0.3s ease;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--grid-gap);
+            margin: 10px auto; width: 100%; aspect-ratio: 1; padding: 10px;
+            border-radius: 16px; transition: box-shadow 0.3s ease;
         }
-
-        /* Glow effect when it's YOUR turn */
-        #board.my-turn-active {
-            box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.1), 0 0 20px rgba(0, 242, 255, 0.1);
-            border: 1px solid rgba(0, 242, 255, 0.2);
-        }
+        #board.my-turn-active { box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.15), 0 0 20px rgba(0, 242, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.3); }
 
         .cell {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 4rem; /* Big Icons */
-            font-weight: 700;
-            cursor: pointer;
+            background: rgba(255, 255, 255, 0.03); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 4rem; font-weight: 700; cursor: pointer;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            user-select: none;
+        }
+        .cell:hover:empty { background: rgba(255, 255, 255, 0.08); transform: scale(0.96); }
+        .cell.x { color: var(--primary); text-shadow: 0 0 20px var(--primary); }
+        .cell.o { color: var(--secondary); text-shadow: 0 0 20px var(--secondary); }
+
+        /* WINNING ANIMATION */
+        .cell.win-highlight {
+            animation: pulse-win 1s infinite alternate;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #fff;
         }
 
-        .cell:hover:empty {
-            background: rgba(255, 255, 255, 0.07);
-            transform: scale(0.98);
+        @keyframes pulse-win {
+            from { box-shadow: 0 0 10px currentColor; transform: scale(1); }
+            to { box-shadow: 0 0 30px currentColor, 0 0 60px currentColor; transform: scale(1.05); }
         }
 
-        /* Styling the X and O */
-        .cell.x {
-            color: var(--primary);
-            text-shadow: 0 0 15px var(--primary), 0 0 30px var(--primary);
-        }
+        #error { color: var(--secondary); text-align: center; font-size: 0.9rem; min-height: 20px; font-weight: 600; }
+        .meta-info { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
 
-        .cell.o {
-            color: var(--secondary);
-            text-shadow: 0 0 15px var(--secondary), 0 0 30px var(--secondary);
-        }
-
-        /* Footer Info */
-        .meta-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            padding-top: 10px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        /* Errors */
-        #error {
-            color: var(--secondary);
-            text-align: center;
-            font-size: 0.9rem;
-            min-height: 20px;
-            font-weight: 600;
-            text-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
-        }
-
-        /* Responsive Adjustments */
         @media (max-width: 500px) {
             .game-container { padding: 20px; }
-            h1 { font-size: 1.8rem; }
             .controls { grid-template-columns: 1fr; }
-            #join-btn { grid-column: span 1; }
+            #join-btn, #copy-btn { grid-column: span 1; }
             .cell { font-size: 3rem; }
         }
     </style>
@@ -287,238 +179,175 @@
 <body>
 
     <div class="game-container">
-        
+        <div class="music-toggle" id="music-btn" title="Toggle Ambient Drone">🎵</div>
+
         <div class="header">
             <h1>Neon Tac Toe</h1>
             <p class="subtitle">Multiplayer Cyberpunk Battle</p>
         </div>
 
-        <div class="controls">
+        <div class="controls" id="login-controls">
             <div class="input-group">
-                <input type="text" id="room-input" placeholder="Room Code (e.g., NEO-1)">
+                <input type="text" id="room-input" placeholder="Room Code (e.g. ab12)" maxlength="30" autocomplete="off" aria-label="Room code">
             </div>
             <div class="input-group">
-                <input type="password" id="password-input" placeholder="Password (Optional)">
+                <input type="password" id="password-input" placeholder="Password (optional)" maxlength="30" autocomplete="current-password" aria-label="Room password">
             </div>
-            <button id="join-btn">Initialize Connection ⚡</button>
+            <button id="join-btn" class="btn">Join / Create Room</button>
         </div>
+        
+        <button id="copy-btn" class="btn">📋 Copy Room Code</button>
 
         <div id="error"></div>
 
         <div class="status-bar">
-            <div id="status">
-                <span class="status-dot"></span>
-                <span>Enter Room Code</span>
-            </div>
-            <div id="player-info">Spectator</div>
+            <div id="status" aria-live="polite"><span class="status-dot" id="status-dot"></span> <span id="status-text">Idle</span></div>
         </div>
 
-        <div id="board"></div>
+        <div id="board" role="grid" aria-label="Tic Tac Toe board"></div>
 
         <div class="meta-info">
-            <span id="players-count">Players: 0/2</span>
-            <span>Socket.IO v4</span>
+            <div id="player-info">Not in a room</div>
+            <div id="players-count">Players: 0/2</div>
         </div>
-
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    
     <script>
         const socket = io();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // Elements
+        // --- DOM Elements ---
         const boardEl = document.getElementById("board");
-        const statusEl = document.getElementById("status");
-        const statusTextEl = statusEl.querySelector("span:last-child");
-        const statusDotEl = statusEl.querySelector(".status-dot");
+        const statusTextEl = document.getElementById("status-text");
+        const statusDotEl = document.getElementById("status-dot");
         const errorEl = document.getElementById("error");
         const playerInfoEl = document.getElementById("player-info");
         const playersCountEl = document.getElementById("players-count");
         const roomInput = document.getElementById("room-input");
         const passwordInput = document.getElementById("password-input");
         const joinBtn = document.getElementById("join-btn");
+        const copyBtn = document.getElementById("copy-btn");
+        const loginControls = document.getElementById("login-controls");
+        const musicBtn = document.getElementById("music-btn");
 
-        // Game State
         let roomId = null;
         let mySymbol = null;
         let currentTurn = "X";
         let isMyTurn = false;
         let isGameActive = false;
 
-        // --- Initialization ---
+        // focus input for convenience
+        try { roomInput.focus(); } catch (e) {}
 
-        // Create Grid Cells
+        // build 3x3 board (simple safe init)
         const cells = [];
         for (let i = 0; i < 9; i++) {
-            const cell = document.createElement("div");
-            cell.classList.add("cell");
-            cell.dataset.index = i;
-            cell.addEventListener("click", () => handleCellClick(i));
-            boardEl.appendChild(cell);
-            cells.push(cell);
-        }
-
-        // --- Logic ---
-
-        function handleCellClick(index) {
-            // Strict Validation
-            if (!isGameActive) return;
-            if (!mySymbol) return; // Spectators can't play
-            if (!isMyTurn) {
-                showError("Wait for your turn!");
-                return;
-            }
-            if (cells[index].textContent !== "") return; // Cell occupied
-
-            // Optimistic UI update (optional, but sticking to server authority for safety)
-            socket.emit("makeMove", { roomId, index, symbol: mySymbol });
-        }
-
-        function updateStatusUI() {
-            if (!roomId) {
-                statusTextEl.textContent = "Enter Room Code";
-                statusDotEl.className = "status-dot";
-                return;
-            }
-
-            if (!isGameActive && !mySymbol) {
-                statusTextEl.textContent = "Waiting for game...";
-                statusDotEl.className = "status-dot waiting";
-                return;
-            }
-
-            if (!mySymbol) {
-                // Spectator View
-                statusTextEl.textContent = `Spectating | Turn: ${currentTurn}`;
-                statusDotEl.className = "status-dot waiting";
-                boardEl.classList.remove("my-turn-active");
-                return;
-            }
-
-            // Player View
-            isMyTurn = (currentTurn === mySymbol);
-            
-            if (isMyTurn) {
-                statusTextEl.textContent = `YOUR TURN (${mySymbol})`;
-                statusDotEl.className = "status-dot active";
-                boardEl.classList.add("my-turn-active"); // Add glow to board
-                document.title = "Your Turn! - Neon Tac Toe";
-            } else {
-                statusTextEl.textContent = `Opponent's Turn (${currentTurn})`;
-                statusDotEl.className = "status-dot waiting";
-                boardEl.classList.remove("my-turn-active");
-                document.title = "Waiting... - Neon Tac Toe";
-            }
+            const c = document.createElement("div");
+            c.className = "cell";
+            c.dataset.index = i;
+            c.tabIndex = 0;
+            c.setAttribute("role", "button");
+            c.addEventListener("click", () => handleCellClick(i));
+            c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleCellClick(i); }});
+            boardEl.appendChild(c);
+            cells.push(c);
         }
 
         function showError(msg) {
             errorEl.textContent = msg;
-            errorEl.style.opacity = "1";
-            setTimeout(() => { errorEl.style.opacity = "0"; errorEl.textContent = ""; }, 3000);
+            statusTextEl.textContent = "Error";
+            statusDotEl.className = "status-dot error";
+            setTimeout(() => { errorEl.textContent = ""; statusTextEl.textContent = "Idle"; statusDotEl.className = "status-dot"; }, 3500);
         }
 
-        // --- Socket Events ---
-
         joinBtn.addEventListener("click", () => {
-            const r = roomInput.value.trim();
-            const p = passwordInput.value.trim();
-
-            if (!r || r.length < 3) {
-                showError("Room code must be 3+ chars");
-                return;
-            }
+            const r = (roomInput.value || "").trim();
+            const p = (passwordInput.value || "").trim();
+            if (!r || r.length < 3) return showError("Enter a room code (min 3 chars).");
 
             roomId = r;
-            // Disable inputs while connecting
             joinBtn.disabled = true;
             joinBtn.textContent = "Connecting...";
-            
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
             socket.emit("joinRoom", { roomId: r, password: p });
         });
 
-        socket.on("roomJoined", () => {
-            roomInput.disabled = true;
-            passwordInput.disabled = true;
-            joinBtn.textContent = "Connected";
-            joinBtn.style.background = "linear-gradient(135deg, #00b09b, #96c93d)"; // Success Green gradient
-            joinBtn.style.borderColor = "#96c93d";
+        copyBtn.addEventListener("click", () => {
+            if (!roomId) return showError("No joined room to copy.");
+            navigator.clipboard?.writeText(roomId).then(() => {
+                copyBtn.textContent = "Copied ✅";
+                setTimeout(() => copyBtn.textContent = "📋 Copy Room Code", 1500);
+            }).catch(() => showError("Copy failed."));
         });
 
         socket.on("roomError", (msg) => {
             roomId = null;
             joinBtn.disabled = false;
-            joinBtn.textContent = "Initialize Connection ⚡";
+            joinBtn.textContent = "Join / Create Room";
             showError(msg);
         });
 
+        socket.on("roomJoined", (joinedRoomId) => {
+            // server may normalize room id (lowercase) — trust it
+            if (joinedRoomId) roomId = joinedRoomId;
+            loginControls.style.display = "none";
+            copyBtn.style.display = "inline-block";
+            copyBtn.disabled = false;
+            roomInput.value = roomId;
+            roomInput.setAttribute("disabled", "true");
+            passwordInput.setAttribute("disabled", "true");
+            statusTextEl.textContent = `Joined ${roomId}`;
+            statusDotEl.className = "status-dot active";
+        });
+
         socket.on("init", (data) => {
-            // Reset state
-            mySymbol = data.symbol;
-            currentTurn = data.turn;
-            isGameActive = true;
-            
-            // Render Board
-            data.board.forEach((val, i) => {
-                cells[i].textContent = val || "";
-                cells[i].className = "cell"; // reset classes
-                if (val === "X") cells[i].classList.add("x");
-                if (val === "O") cells[i].classList.add("o");
-            });
-
-            // Update Info
-            playerInfoEl.textContent = mySymbol ? `You are Player ${mySymbol}` : "Spectator Mode";
-            if(mySymbol === 'X') playerInfoEl.style.color = "var(--primary)";
-            if(mySymbol === 'O') playerInfoEl.style.color = "var(--secondary)";
-
-            updateStatusUI();
+            // minimal safe handling here; rest of logic can reuse existing functions
+            mySymbol = data.symbol ?? null;
+            currentTurn = data.turn ?? "X";
+            playersCountEl.textContent = `Players: ${data.playersCount}/2`;
+            playerInfoEl.textContent = mySymbol ? `You are: ${mySymbol}` : "Spectator";
+            // update board if provided
+            if (Array.isArray(data.board)) {
+                data.board.forEach((val, i) => {
+                    cells[i].textContent = val || "";
+                    cells[i].classList.remove("x","o");
+                    if (val === "X") cells[i].classList.add("x");
+                    if (val === "O") cells[i].classList.add("o");
+                });
+            }
         });
 
-        socket.on("playersCount", (count) => {
-            playersCountEl.textContent = `Players: ${count}/2`;
-        });
+        function handleCellClick(index) {
+            if (!roomId) return showError("Join a room first.");
+            if (!mySymbol) return showError("You're a spectator.");
+            if (!isGameActive) return showError("Game not active.");
+            if (currentTurn !== mySymbol) return showError("Not your turn.");
+            if (cells[index].textContent) return;
 
-        socket.on("moveMade", ({ index, symbol, turn, winner, isDraw }) => {
-            // Update the specific cell
+            socket.emit("makeMove", { roomId, index, symbol: mySymbol });
+        }
+
+        // lightweight moveMade handler to show symbol and winning line
+        socket.on("moveMade", ({ index, symbol, turn, winner, winningLine, isDraw }) => {
             cells[index].textContent = symbol;
-            cells[index].classList.add(symbol.toLowerCase());
-            
+            cells[index].classList.add(symbol === "X" ? "x" : "o");
             currentTurn = turn;
-
-            if (winner) {
-                isGameActive = false;
-                statusTextEl.textContent = winner === mySymbol ? "VICTORY ACHIEVED 🏆" : "DEFEAT DETECTED 💀";
-                statusDotEl.className = winner === mySymbol ? "status-dot active" : "status-dot error";
-                boardEl.classList.remove("my-turn-active");
-                if(winner === mySymbol) triggerWinEffect();
-            } else if (isDraw) {
-                isGameActive = false;
-                statusTextEl.textContent = "SYSTEM DRAW 🤝";
-                statusDotEl.className = "status-dot waiting";
-                boardEl.classList.remove("my-turn-active");
-            } else {
-                updateStatusUI();
+            isGameActive = !winner && !isDraw;
+            if (winner && Array.isArray(winningLine)) {
+                winningLine.forEach(i => cells[i].classList.add("win-highlight"));
+                // small confetti trigger if client sees they won
+                if (winner === mySymbol) {
+                    try { confetti({ particleCount: 60, spread: 50 }); } catch (e) {}
+                }
             }
         });
 
         socket.on("resetBoard", () => {
-            cells.forEach(c => {
-                c.textContent = "";
-                c.className = "cell";
-            });
+            cells.forEach(c => { c.textContent = ""; c.classList.remove("x","o","win-highlight"); });
             isGameActive = true;
-            currentTurn = "X";
-            updateStatusUI();
         });
-
-        // Simple visual win effect (Flash the board)
-        function triggerWinEffect() {
-            boardEl.style.boxShadow = "0 0 50px var(--primary)";
-            setTimeout(() => {
-                boardEl.style.boxShadow = "none";
-            }, 500);
-        }
-
     </script>
 </body>
 </html>
