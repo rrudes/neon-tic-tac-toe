@@ -5,14 +5,14 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const playSound = (type) => {
     if (audioCtx.state === 'suspended') return;
     if (document.getElementById('music-btn').classList.contains('muted')) return;
-    
+
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-    
+
     const now = audioCtx.currentTime;
-    
+
     if (type === 'hover') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(400, now);
@@ -39,6 +39,22 @@ const playSound = (type) => {
         gain.gain.linearRampToValueAtTime(0, now + 1);
         osc.start(now);
         osc.stop(now + 1);
+    } else if (type === 'lose') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0, now + 1);
+        osc.start(now);
+        osc.stop(now + 1);
+    } else if (type === 'tie') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.setValueAtTime(200, now + 0.1);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
     } else if (type === 'chat') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(800, now);
@@ -50,9 +66,9 @@ const playSound = (type) => {
     }
 };
 
-document.getElementById('music-btn').addEventListener('click', function() {
+document.getElementById('music-btn').addEventListener('click', function () {
     this.classList.toggle('muted');
-    if(this.classList.contains('muted')) {
+    if (this.classList.contains('muted')) {
         this.textContent = '🔇';
     } else {
         this.textContent = '🔊';
@@ -73,33 +89,33 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-for(let i=0; i<50; i++) {
+for (let i = 0; i < 50; i++) {
     particles.push({
         x: Math.random() * w, y: Math.random() * h,
-        vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5,
-        size: Math.random()*2+1
+        vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 2 + 1
     });
 }
 function drawBg() {
-    ctx.clearRect(0,0,w,h);
+    ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = "rgba(0, 242, 255, 0.5)";
     particles.forEach(p => {
         p.x += p.vx; p.y += p.vy;
-        if(p.x < 0) p.x = w; if(p.x > w) p.x = 0;
-        if(p.y < 0) p.y = h; if(p.y > h) p.y = 0;
+        if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
     });
     // draw lines between close particles
     ctx.strokeStyle = "rgba(0, 242, 255, 0.05)";
     ctx.lineWidth = 1;
-    for(let i=0; i<particles.length; i++){
-        for(let j=i+1; j<particles.length; j++){
+    for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
             const dx = particles[i].x - particles[j].x;
             const dy = particles[i].y - particles[j].y;
-            const dist = dx*dx + dy*dy;
-            if(dist < 15000) {
+            const dist = dx * dx + dy * dy;
+            if (dist < 15000) {
                 ctx.beginPath();
                 ctx.moveTo(particles[i].x, particles[i].y);
                 ctx.lineTo(particles[j].x, particles[j].y);
@@ -115,7 +131,7 @@ drawBg();
 const mainWrapper = document.getElementById('main-wrapper');
 const board3d = document.querySelector('.board-3d');
 document.addEventListener('mousemove', (e) => {
-    if(window.innerWidth < 850) return; // Disable tilt on mobile layout for stability
+    if (window.innerWidth < 850) return; // Disable tilt on mobile layout for stability
     const xAxis = (window.innerWidth / 2 - e.pageX) / 40;
     const yAxis = (window.innerHeight / 2 - e.pageY) / 40;
     board3d.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis * -1}deg)`;
@@ -141,6 +157,9 @@ const chatSendBtn = document.getElementById("chat-send");
 const emojiBar = document.getElementById("emoji-bar");
 const gameContainer = document.querySelector(".game-container");
 
+const resultOverlay = document.getElementById("result-overlay");
+const resultText = document.getElementById("result-text");
+
 const rematchModal = document.getElementById("rematch-modal");
 const acceptRematchBtn = document.getElementById("accept-rematch-btn");
 const declineRematchBtn = document.getElementById("decline-rematch-btn");
@@ -151,7 +170,7 @@ let currentTurn = "X";
 let isGameActive = false;
 let myName = null;
 
-try { roomInput.focus(); } catch (e) {}
+try { roomInput.focus(); } catch (e) { }
 
 // Build Board
 const cells = [];
@@ -162,10 +181,10 @@ for (let i = 0; i < 9; i++) {
     c.tabIndex = 0;
     c.setAttribute("role", "button");
     c.addEventListener("mouseenter", () => {
-        if(isGameActive && currentTurn === mySymbol && !c.hasChildNodes()) playSound('hover');
+        if (isGameActive && currentTurn === mySymbol && !c.hasChildNodes()) playSound('hover');
     });
     c.addEventListener("click", () => handleCellClick(i));
-    c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleCellClick(i); }});
+    c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleCellClick(i); } });
     boardEl.appendChild(c);
     cells.push(c);
 }
@@ -191,11 +210,11 @@ function showError(msg) {
 
 function renderCell(c, symbol) {
     c.innerHTML = "";
-    c.className = "cell"; 
-    if(symbol === "X") {
+    c.className = "cell";
+    if (symbol === "X") {
         c.classList.add("x");
         c.innerHTML = '<svg><use href="#icon-x"></use></svg>';
-    } else if(symbol === "O") {
+    } else if (symbol === "O") {
         c.classList.add("o");
         c.innerHTML = '<svg><use href="#icon-o"></use></svg>';
     }
@@ -272,8 +291,8 @@ socket.on("init", (data) => {
     currentTurn = data.turn ?? "X";
     playersCountEl.innerHTML = `<span class="icon">👥</span> ${data.playersCount}/2 Connected`;
     playerInfoEl.textContent = mySymbol ? `Designation: ${mySymbol}` : "Spectator";
-    
-    isGameActive = true; 
+
+    isGameActive = true;
 
     if (Array.isArray(data.board)) {
         data.board.forEach((val, i) => {
@@ -289,7 +308,7 @@ function handleCellClick(index) {
     if (!isGameActive) return showError("Match concluded.");
     if (currentTurn !== mySymbol) return showError("Awaiting opponent...");
     if (cells[index].hasChildNodes()) return;
-    
+
     playSound('click');
     socket.emit("makeMove", { roomId, index, symbol: mySymbol });
 }
@@ -297,19 +316,32 @@ function handleCellClick(index) {
 socket.on("moveMade", ({ index, symbol, turn, winner, winningLine, isDraw }) => {
     renderCell(cells[index], symbol);
     currentTurn = turn;
-    
+
     if (winner || isDraw) {
         isGameActive = false;
         updateTurnUI();
         rematchBtn.style.display = "flex";
+
+        resultOverlay.classList.remove("hidden");
+
         if (winner && Array.isArray(winningLine)) {
             winningLine.forEach(i => cells[i].classList.add("win-highlight"));
             if (winner === mySymbol) {
                 playSound('win');
-                try { confetti({ particleCount: 100, spread: 70, colors: ['#00f2ff', '#ff0055', '#b026ff'] }); } catch (e) {}
+                try { confetti({ particleCount: 100, spread: 70, colors: ['#00f2ff', '#ff0055', '#b026ff'] }); } catch (e) { }
+                resultText.textContent = "VICTORY";
+                resultText.className = "glitch win-text";
             } else {
-                // optional lose sound
+                playSound('lose');
+                document.body.classList.add('shake-anim');
+                resultText.textContent = "DEFEAT";
+                resultText.className = "glitch lose-text";
+                setTimeout(() => document.body.classList.remove('shake-anim'), 500);
             }
+        } else if (isDraw) {
+            playSound('tie');
+            resultText.textContent = "DRAW";
+            resultText.className = "glitch tie-text";
         }
     } else {
         isGameActive = true;
@@ -323,19 +355,20 @@ socket.on("rematchRequestedByOpponent", () => {
 });
 
 socket.on("resetBoard", () => {
-    cells.forEach(c => { 
-        c.innerHTML = ""; 
-        c.className = "cell"; 
+    cells.forEach(c => {
+        c.innerHTML = "";
+        c.className = "cell";
     });
     isGameActive = true;
     currentTurn = "X";
     updateTurnUI();
-    
+
     rematchBtn.style.display = "none";
     rematchBtn.textContent = "🔄 Request Rematch";
     rematchBtn.classList.remove("selected");
     rematchBtn.disabled = false;
     rematchModal.classList.remove("active");
+    resultOverlay.classList.add("hidden");
 
     appendChat({ senderName: "System", message: "Matrix Reset. Initiate.", symbol: null });
 });
@@ -350,8 +383,8 @@ socket.on("opponentLeft", () => {
 
 // Chat & Reactions
 function appendChat({ senderName, message, symbol }) {
-    if(senderName !== "System" && senderName !== myName) playSound('chat');
-    
+    if (senderName !== "System" && senderName !== myName) playSound('chat');
+
     const wrapper = document.createElement("div");
     if (senderName === "System") {
         const el = document.createElement("div");
@@ -380,7 +413,7 @@ chatSendBtn.addEventListener("click", () => {
     socket.emit("chatMessage", { roomId, message: txt });
     chatInput.value = "";
 });
-chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); chatSendBtn.click(); }});
+chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); chatSendBtn.click(); } });
 socket.on("chatMessage", appendChat);
 
 function spawnFloatingEmoji(emoji) {
@@ -392,7 +425,7 @@ function spawnFloatingEmoji(emoji) {
     const left = Math.max(padding, Math.random() * (rect.width - padding * 2));
     el.style.left = `${left}px`;
     gameContainer.appendChild(el);
-    setTimeout(() => { try { el.remove(); } catch (e) {} }, 2600);
+    setTimeout(() => { try { el.remove(); } catch (e) { } }, 2600);
 }
 emojiBar?.addEventListener("click", (e) => {
     const btn = e.target.closest?.(".emoji-btn");

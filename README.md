@@ -1,21 +1,46 @@
-# ⚡ Neon Tic Tac Toe
+# 🕹️ Neon Tic-Tac-Toe
 
-A real-time, low-latency multiplayer Tic Tac Toe game featuring a glassmorphism UI and Cyberpunk aesthetics.
+A modern, highly interactive, multiplayer Tic-Tac-Toe game with a Cyberpunk/Neon aesthetic. Play against friends in real-time with slick animations, synthesized sound effects, and smooth gameplay.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D14.0-success)
+## ✨ Features
 
-## 🎮 Features
+- **Real-time Multiplayer:** Play instantly with anyone using a room code, powered by Socket.io.
+- **Cyberpunk Aesthetic:** Full glassmorphism UI, neon glow effects, and a dynamic particle background.
+- **Audio Experience:** Custom synthesized sound effects for hovering, clicking, winning, losing, tying, and chatting.
+- **Interactive Chat & Reactions:** Send messages and floating emoji reactions to your opponent during the match.
+- **3D Board Tilt:** Interactive board that reacts to your mouse movements for enhanced immersion.
+- **Rematch System:** Easily request and accept rematches without leaving the room.
 
-- **Real-time Communication:** Built with Socket.io for instant move updates.
-- **Cyberpunk UI:** Custom CSS with neon glows and glassmorphism cards.
-- **Room System:** Private rooms with password protection.
-- **Responsive:** Mobile-first design that adapts to any screen size.
-- **State Management:** Server-side validation to prevent cheating.
+## 🚀 Tech Stack
 
-## 🚀 How to Run Locally
+- **Frontend:** HTML5, CSS3 (Custom Properties, Flexbox/Grid, Animations), Vanilla JavaScript
+- **Backend:** Node.js, Express
+- **Real-time Engine:** Socket.io
+- **Extras:** Canvas Confetti for victory celebrations, Web Audio API for synthesized sound generation.
 
-1. **Clone the repo**
+## 🎮 How to Play
+
+1. **Host a Game:** Enter a Room Code, optional Password, and your Alias. Click **Initialize Link**.
+2. **Join a Game:** Have your friend enter the *same* Room Code and Password.
+3. **Play:** Once both players are connected, the match begins! Click a cell when it's your turn.
+4. **Communicate:** Use the chat box to send messages or the emoji bar to send floating reactions.
+5. **Rematch:** When the game ends, request a rematch to play again instantly.
+
+## 🛠️ Setup Instructions
+
+To run this project locally:
+
+1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/neon-tic-tac-toe.git](https://github.com/rrudes/neon-tic-tac-toe.git)
-   cd neon-tic-tac-toe
+   git clone <repository-url>
+   cd tictactoe
+   ```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+3. **Start the server:**
+   ```bash
+   npm start
+   ```
+4. Open your browser and navigate to `http://localhost:3000`.
