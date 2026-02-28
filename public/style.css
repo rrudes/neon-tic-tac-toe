@@ -240,6 +240,7 @@ input,
     letter-spacing: 4px;
     margin-bottom: 2px;
     background: linear-gradient(to right, #fff, #bbb);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     position: relative;
