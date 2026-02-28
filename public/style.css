@@ -144,6 +144,8 @@ input,
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     /* Make the cells feel like they have depth */
     box-shadow: inset 0 4px 10px rgba(255, 255, 255, 0.02), 0 4px 15px rgba(0, 0, 0, 0.3);
+    aspect-ratio: 1;
+    /* Fix empty cell collapsing */
 }
 
 .cell::before {
@@ -844,7 +846,9 @@ input:focus+.input-glow {
     }
 
     .chat-container {
-        min-height: 350px;
+        height: 350px;
+        min-height: unset;
+        flex: none;
     }
 
     .glitch {
@@ -881,6 +885,11 @@ input:focus+.input-glow {
         border-radius: 10px;
     }
 
+    .cell:empty {
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+    }
+
     .music-toggle {
         top: 8px;
         right: 8px;
@@ -909,8 +918,12 @@ input:focus+.input-glow {
     }
 
     .chat-container {
-        min-height: 250px;
+        height: 250px;
+        min-height: unset;
+        flex: none;
         padding: 12px;
+        padding-bottom: 30px;
+        /* Keyboard padding */
     }
 
     .chat-msg {
