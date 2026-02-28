@@ -1,5 +1,7 @@
 # 🕹️ Neon Tic-Tac-Toe
 
+**🚀 Play Now:** [https://neon-tic-tac-toe.onrender.com/](https://neon-tic-tac-toe.onrender.com/)
+
 A modern, highly interactive, multiplayer Tic-Tac-Toe game with a Cyberpunk/Neon aesthetic. Play against friends in real-time with slick animations, synthesized sound effects, and smooth gameplay.
 
 ## ✨ Features
