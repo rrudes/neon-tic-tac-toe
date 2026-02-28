@@ -29,11 +29,19 @@ body {
     background-color: var(--bg-base);
     color: var(--text-main);
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: flex-start;
     align-items: center;
     overflow-x: hidden;
-    padding: 20px;
+    padding: 10px;
+}
+
+button,
+input,
+.cell {
+    touch-action: manipulation;
 }
 
 /* Background Canvas */
@@ -68,6 +76,7 @@ body {
     z-index: 5;
     width: 100%;
     max-width: 950px;
+    margin: auto 0;
     perspective: 1200px;
     /* For potential container tilting */
 }
@@ -818,6 +827,10 @@ input:focus+.input-glow {
 
 /* Responsive adjustments */
 @media (max-width: 850px) {
+    .main-wrapper {
+        margin: 20px 0;
+    }
+
     .game-content {
         flex-direction: column;
     }
@@ -836,6 +849,11 @@ input:focus+.input-glow {
     .glitch {
         font-size: 2.2rem;
     }
+
+    #result-text {
+        font-size: 3rem;
+        letter-spacing: 6px;
+    }
 }
 
 @media (max-width: 500px) {
@@ -848,11 +866,63 @@ input:focus+.input-glow {
     }
 
     .game-container {
-        padding: 20px;
+        padding: 15px;
+        gap: 16px;
+    }
+
+    .board-3d {
+        gap: 8px;
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    .cell {
+        border-radius: 10px;
     }
 
     .music-toggle {
-        top: 10px;
-        right: 10px;
+        top: 8px;
+        right: 8px;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .glitch {
+        font-size: 1.8rem;
+    }
+
+    #result-text {
+        font-size: 2rem;
+        letter-spacing: 4px;
+    }
+
+    .status-bar {
+        padding: 8px 12px;
+    }
+
+    .btn,
+    .small-btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+
+    .chat-container {
+        min-height: 250px;
+        padding: 12px;
+    }
+
+    .chat-msg {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+
+    .emoji-btn {
+        font-size: 1.2rem;
+    }
+
+    .reaction {
+        font-size: 1.5rem;
+        bottom: 60px;
     }
 }
